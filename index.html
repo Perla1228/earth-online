@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>地球 Online · 单人副本手册</title>
+<meta name="description" content="地球 Online 生活工作台入口">
+<meta name="theme-color" content="#d8edf6">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" href="./icons/favicon-64.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="地球Online">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{--paper:#d8edf6;--ink:#1f4258;--muted:#52768c;--card:rgba(255,253,245,.86);--line:#a9cfdf;--blue:#1f7ab5}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:linear-gradient(180deg,#e8f5fb,#cfe8f3 60%,#d9efe6);
+  color:var(--ink);font:15px/1.6 Inter,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+.card{
+  width:100%;max-width:360px;text-align:center;padding:34px 26px 26px;border-radius:24px;
+  background:var(--card);border:1px solid var(--line);
+  box-shadow:0 16px 40px rgba(30,90,130,.12);
+}
+.badge{font-size:12px;letter-spacing:.35em;color:var(--muted);margin-bottom:14px}
+.logo{width:96px;height:96px;border-radius:24px;box-shadow:0 10px 24px rgba(30,90,130,.18);display:block;margin:0 auto 16px}
+h1{margin:0 0 4px;font-size:22px;letter-spacing:.06em}
+.sub{margin:0 0 22px;color:var(--muted);font-size:13px}
+.btn{
+  display:block;width:100%;margin-top:10px;padding:12px 16px;border-radius:14px;border:0;cursor:pointer;
+  font-size:15px;font-weight:600;background:var(--blue);color:#fff;
+}
+.btn.ghost{background:transparent;color:var(--blue);border:1.5px solid var(--blue);font-weight:500}
+.hint{margin:16px 0 0;font-size:12.5px;color:var(--muted)}
+.hint b{color:var(--ink)}
+.wx-tip{
+  display:none;margin:0 0 14px;padding:12px 14px;border-radius:14px;text-align:left;
+  background:#fff7e0;border:1px solid #ecd9a0;font-size:13.5px;line-height:1.7;
+}
+body.is-wx .wx-tip{display:block}
+.url{word-break:break-all;font-size:11px;color:#8aa5b5;margin-top:18px}
+.copied{color:#477358!important}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="badge">EARTH&nbsp;ONLINE</div>
+  <img class="logo" src="./icons/icon-192.png" alt="地球 Online">
+  <h1>地球 Online</h1>
+  <p class="sub">单人副本手册 · 今日主线 / 任务 / 番茄 / 补给</p>
+
+  <div class="wx-tip">
+    你正在<b>微信内</b>打开，微信浏览器进不去工作台。<br>
+    ① 点右上角 <b>···</b> → 选「<b>在浏览器打开</b>」；<br>
+    ② 或先点下面「复制链接」，粘贴到 Chrome 打开。
+  </div>
+
+  <button class="btn" id="install" style="display:none">安装为独立图标</button>
+  <button class="btn" id="go">进入工作台</button>
+  <button class="btn ghost" id="copy">复制链接</button>
+  <p class="hint" id="status">正在准备入口…</p>
+  <p class="hint" id="installHint" style="display:none">
+    浏览器菜单里点「<b>安装应用</b>」（电脑看地址栏右侧 ⊕），就能变成独立图标
+  </p>
+  <p class="url">https://workbuddy.link/p/vyeEs5rKcvj9tjSwkYndGB</p>
+</main>
+
+<script>
+(function(){
+  var TARGET = "https://workbuddy.link/p/vyeEs5rKcvj9tjSwkYndGB";
+  var status = document.getElementById("status");
+  var goBtn = document.getElementById("go");
+  var installBtn = document.getElementById("install");
+  var installHint = document.getElementById("installHint");
+  var ua = navigator.userAgent || "";
+  var isWx = /MicroMessenger/i.test(ua);
+  if (isWx) document.body.classList.add("is-wx");
+
+  // 本地/预览环境不自动跳，方便调试
+  var host = location.hostname;
+  var isLocal = !/^https?:$/.test(location.protocol) || host === "localhost" || host === "127.0.0.1";
+  var isHttps = location.protocol === "https:";
+
+  // 是否已经作为独立应用运行（安装后打开 = standalone）
+  var standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches)
+    || window.navigator.standalone === true;
+
+  function go(){ location.replace(TARGET); }
+  function goSoon(ms){ setTimeout(go, ms); }
+
+  // ---- Service Worker：有它浏览器才会给「安装应用」选项 ----
+  if ("serviceWorker" in navigator && (isHttps || host === "localhost")) {
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("./sw.js").catch(function(){ /* 忽略：不影响跳转 */ });
+    });
+  }
+
+  // ---- 安装提示 ----
+  var deferred = null;
+  window.addEventListener("beforeinstallprompt", function(e){
+    e.preventDefault();
+    deferred = e;
+    installBtn.style.display = "block";
+    goBtn.className = "btn ghost";
+    goBtn.textContent = "先不安装，直接进";
+    status.textContent = "装上后：点图标直接进，不用每次路过这里";
+  });
+  window.addEventListener("appinstalled", function(){
+    deferred = null;
+    installBtn.style.display = "none";
+    try { localStorage.setItem("eo_installed", "1"); } catch(e){}
+    status.textContent = "已安装，正在进入…";
+    goSoon(300);
+  });
+  installBtn.addEventListener("click", function(){
+    if (!deferred) { status.textContent = "请从浏览器菜单「安装应用」安装"; return; }
+    deferred.prompt();
+    deferred.userChoice.then(function(res){
+      if (res.outcome === "accepted") { status.textContent = "正在安装…"; }
+      else { status.textContent = "已取消，可以随时从浏览器菜单安装"; }
+      deferred = null;
+    });
+  });
+
+  goBtn.addEventListener("click", function(){
+    try { localStorage.setItem("eo_skip_install", "1"); } catch(e){}
+    go();
+  });
+
+  document.getElementById("copy").addEventListener("click", function(){
+    var btn = this, done = function(){
+      btn.textContent = "已复制 ✓"; btn.classList.add("copied");
+      status.textContent = "链接已复制，去 Chrome 粘贴打开";
+      setTimeout(function(){ btn.textContent = "复制链接"; btn.classList.remove("copied"); }, 2200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(TARGET).then(done, fallback);
+    } else { fallback(); }
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = TARGET; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); done(); } catch(e){ status.textContent = "复制失败，请手动长按底部链接复制"; }
+      document.body.removeChild(ta);
+    }
+  });
+
+  var skip = false, installed = false;
+  try {
+    skip = localStorage.getItem("eo_skip_install") === "1";
+    installed = localStorage.getItem("eo_installed") === "1";
+  } catch(e){}
+
+  if (isWx) {
+    status.textContent = "建议先在浏览器打开并登录一次工作台";
+  } else if (isLocal) {
+    status.textContent = "预览模式：不自动跳转";
+    installHint.style.display = "block";
+  } else if (!navigator.onLine) {
+    status.textContent = "当前离线，联网后再打开";
+  } else if (standalone || installed || skip) {
+    // 已装成独立图标，或之前选过直接进入：不再停留，直接跳转
+    status.textContent = "正在进入…";
+    goSoon(standalone ? 60 : 200);
+  } else {
+    status.textContent = "首次打开：装成独立图标最省事";
+    installHint.style.display = "block";
+  }
+})();
+</script>
+</body>
+</html>
