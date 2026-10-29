@@ -45,9 +45,31 @@ body.is-wx .wx-tip{display:block}
 .url{word-break:break-all;font-size:11px;color:#8aa5b5;margin-top:18px}
 .copied{color:#477358!important}
 .stop{display:none;margin-top:6px;font-size:12.5px;color:var(--blue);text-decoration:underline}
+.bootwrap{display:none}
+html.boot,html.boot body{background:#d8edf6}
+html.boot body{padding:0}
+html.boot .card,html.boot .bootwrap{display:none}
+html.boot .bootwrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh}
+.bdot{width:52px;height:52px;border-radius:50%;background:var(--blue);opacity:.85;animation:bp 1.15s ease-in-out infinite}
+@keyframes bp{0%,100%{transform:scale(.86);opacity:.5}50%{transform:scale(1);opacity:.95}}
+@media (prefers-reduced-motion:reduce){.bdot{animation:none}}
 </style>
+<script>
+/* 首帧判定：已安装 / 选过直接进 → 直接渲染成启动闪屏，不闪一下入口卡片 */
+(function(){
+  try{
+    var qs = location.search || "";
+    if (/(\?|&)(install|reset)\b/.test(qs)) return;
+    var boot = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches)
+      || window.navigator.standalone === true
+      || localStorage.getItem("eo_installed") === "1";
+    if (boot) document.documentElement.className = "boot";
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
+<div class="bootwrap"><div class="bdot"></div></div>
 <main class="card">
   <div class="badge">EARTH&nbsp;ONLINE</div>
   <img class="logo" src="./icons/icon-192.png" alt="地球 Online">
