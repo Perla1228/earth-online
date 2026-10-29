@@ -44,6 +44,7 @@ h1{margin:0 0 4px;font-size:22px;letter-spacing:.06em}
 body.is-wx .wx-tip{display:block}
 .url{word-break:break-all;font-size:11px;color:#8aa5b5;margin-top:18px}
 .copied{color:#477358!important}
+.stop{display:none;margin-top:6px;font-size:12.5px;color:var(--blue);text-decoration:underline}
 </style>
 </head>
 <body>
@@ -64,8 +65,11 @@ body.is-wx .wx-tip{display:block}
   <button class="btn ghost" id="copy">复制链接</button>
   <p class="hint" id="status">正在准备入口…</p>
   <p class="hint" id="installHint" style="display:none">
-    浏览器菜单里点「<b>安装应用</b>」（电脑看地址栏右侧 ⊕），就能变成独立图标
+    手机：Chrome 菜单 <b>⋮</b> → 「<b>安装应用</b>」或「添加到主屏幕」<br>
+    电脑：地址栏右侧的 <b>⊕ 安装</b>（或菜单 → 安装此站点为应用）<br>
+    <b>就在这一页装</b>，装完图标才是地球
   </p>
+  <p><a class="stop" id="stop" href="?install" style="display:none">停在这里 · 改成安装为独立图标</a></p>
   <p class="url">https://workbuddy.link/p/vyeEs5rKcvj9tjSwkYndGB</p>
 </main>
 
@@ -76,6 +80,7 @@ body.is-wx .wx-tip{display:block}
   var goBtn = document.getElementById("go");
   var installBtn = document.getElementById("install");
   var installHint = document.getElementById("installHint");
+  var stopLink = document.getElementById("stop");
   var ua = navigator.userAgent || "";
   var isWx = /MicroMessenger/i.test(ua);
   if (isWx) document.body.classList.add("is-wx");
@@ -149,23 +154,50 @@ body.is-wx .wx-tip{display:block}
     }
   });
 
+  // 网址加 ?install 或 ?reset → 强制停在安装引导，并清掉之前「直接进」的记忆
+  var stay = false;
+  try {
+    var qs = location.search || "";
+    stay = /(\?|&)(install|reset)\b/.test(qs);
+    if (stay) {
+      localStorage.removeItem("eo_skip_install");
+      localStorage.removeItem("eo_installed");
+    }
+  } catch(e){}
+
   var skip = false, installed = false;
   try {
-    skip = localStorage.getItem("eo_skip_install") === "1";
-    installed = localStorage.getItem("eo_installed") === "1";
+    skip = !stay && localStorage.getItem("eo_skip_install") === "1";
+    installed = !stay && localStorage.getItem("eo_installed") === "1";
   } catch(e){}
 
   if (isWx) {
-    status.textContent = "建议先在浏览器打开并登录一次工作台";
-  } else if (isLocal) {
-    status.textContent = "预览模式：不自动跳转";
+    status.textContent = "微信里装不了：请用 Chrome 打开本页再装";
     installHint.style.display = "block";
   } else if (!navigator.onLine) {
     status.textContent = "当前离线，联网后再打开";
-  } else if (standalone || installed || skip) {
-    // 已装成独立图标，或之前选过直接进入：不再停留，直接跳转
+  } else if (isLocal) {
+    status.textContent = "预览模式：不自动跳转";
+    installHint.style.display = "block";
+  } else if (stay) {
+    status.textContent = "已停在这里 · 装成独立图标后点它就直达";
+    installHint.style.display = "block";
+  } else if (standalone || installed) {
+    // 已经装成独立图标：秒进，不打扰
     status.textContent = "正在进入…";
-    goSoon(standalone ? 60 : 200);
+    goSoon(60);
+  } else if (skip) {
+    // 之前选过「直接进」：留 3 秒可打断窗口，想改回安装流程就点「停在这里」
+    stopLink.style.display = "inline-block";
+    var left = 3;
+    status.textContent = left + " 秒后进入工作台…";
+    var timer = setInterval(function(){
+      left--;
+      if (left <= 0) { clearInterval(timer); status.textContent = "正在进入…"; go(); }
+      else status.textContent = left + " 秒后进入工作台…";
+    }, 1000);
+    stopLink.addEventListener("click", function(){ clearInterval(timer); });
+    installHint.style.display = "block";
   } else {
     status.textContent = "首次打开：装成独立图标最省事";
     installHint.style.display = "block";

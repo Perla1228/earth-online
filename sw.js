@@ -1,6 +1,6 @@
 /* 地球 Online 壳页 Service Worker：缓存壳页与图标，让 Chrome 可安装为独立应用。
    策略：页面导航 network-first（保证跳转入口最新），静态资源 cache-first。 */
-var CACHE = "earth-online-v1";
+var CACHE = "earth-online-v2";
 var SHELL = [
   "./",
   "./index.html",
